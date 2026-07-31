@@ -1,21 +1,34 @@
-from pathlib import Path
+from typing import Annotated
 
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, File, Form, UploadFile
 
-router = APIRouter(prefix="/upload", tags=["Upload"])
+from app.schemas.document import DocumentUploadResponse
+from app.services.storage import StorageService
+from app.services.validation import FileValidationService
 
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
+router = APIRouter(
+    prefix="/documents",
+    tags=["Documents"],
+)
+
+validator = FileValidationService()
+storage = StorageService()
 
 
-@router.post("/")
-async def upload_pdf(file: UploadFile = File(...)):
-    file_path = UPLOAD_DIR / file.filename
+@router.post(
+    "/upload",
+    response_model=DocumentUploadResponse,
+    status_code=201,
+)
+async def upload_document(
+    file: Annotated[UploadFile, File()],
+    category: Annotated[str, Form()],
+):
+    await validator.validate(file)
 
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
+    result = await storage.save_file(
+        file=file,
+        category=category,
+    )
 
-    return {
-        "filename": file.filename,
-        "saved_to": str(file_path)
-    }
+    return result

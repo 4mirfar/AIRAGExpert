@@ -3,3 +3,7 @@ uvicorn
 python-multipart 
 pypdf 
 qdrant-client
+
+python-docx 
+aiofiles 
+python-magic
