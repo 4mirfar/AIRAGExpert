@@ -7,3 +7,7 @@ qdrant-client
 python-docx 
 aiofiles 
 python-magic
+
+sqlalchemy
+psycopg[binary]
+alembic
