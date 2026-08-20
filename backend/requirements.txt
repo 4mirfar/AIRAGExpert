@@ -11,3 +11,5 @@ python-magic
 sqlalchemy
 psycopg[binary]
 alembic
+
+pytest

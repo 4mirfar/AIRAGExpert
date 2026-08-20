@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
+
 DATABASE_URL = (
     "postgresql+psycopg://"
     "rag:ragpassword@localhost:5432/ragdb"
@@ -31,3 +32,4 @@ def get_db():
         yield db
     finally:
         db.close()
+
