@@ -15,3 +15,5 @@ alembic
 pytest
 
 sentence-transformers
+
+ollama
