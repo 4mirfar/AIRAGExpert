@@ -6,8 +6,11 @@ from app.parsers.txt_parser import TXTParser
 
 from app.chunking.recursive import RecursiveChunker
 from app.chunking.metadata import MetadataBuilder
+from app.services.embedding import EmbeddingService
+from app.services.qdrant_service import QdrantService
 
 from app.models.chunk import Chunk
+
 
 
 class IngestionService:
@@ -41,6 +44,12 @@ class IngestionService:
         )
 
         self.metadata_builder = MetadataBuilder()
+
+        self.embedding_service = EmbeddingService()
+        self.qdrant_service = QdrantService()
+        
+        
+
 
 
     async def ingest(
@@ -121,6 +130,15 @@ class IngestionService:
 
 
             chunks.append(chunk)
+
+        vectors = self.embedding_service.embed_chunks(chunks)
+
+        self.qdrant_service.create_collection()
+
+        stored_count = self.qdrant_service.upsert_chunks(
+            chunks=chunks,
+            vectors=vectors,
+        )
 
 
         return chunks
