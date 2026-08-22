@@ -28,5 +28,9 @@ class Retriever:
                 result.payload["filename"],
                 result.payload["chunk_index"],
             )
-            
+
         return results
+
+
+#  TODO Add a similarity threshold
+    

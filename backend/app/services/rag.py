@@ -46,4 +46,14 @@ class RAGService:
         # 4. Generate answer
         answer = self.llm_service.generate(prompt)
 
-        return answer
+        return {
+            "answer": answer,
+            "sources": [
+                {
+                    "filename": result.payload.get("filename"),
+                    "chunk_index": result.payload.get("chunk_index"),
+                    "score": result.score,
+                }
+                for result in results
+            ],
+        }

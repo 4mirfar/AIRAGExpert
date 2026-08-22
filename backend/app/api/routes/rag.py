@@ -28,8 +28,12 @@ rag_service = RAGService(
 
 @router.post("/ask", response_model=RAGResponse)
 def ask_question(request: RAGRequest):
-    answer = rag_service.ask(request.question)
+    result = rag_service.ask(request.question)
 
     return RAGResponse(
-        answer=answer
+        answer=result["answer"],
+        sources=result["sources"]
     )
+
+
+# TODO use Reranker for better quality of searches
