@@ -13,7 +13,7 @@ def test_rag_pipeline():
     )
 
     llm_service = LLMService(
-        model="llama3.1",
+        model="llama3.2:3b",
         host="http://localhost:11434",
     )
 

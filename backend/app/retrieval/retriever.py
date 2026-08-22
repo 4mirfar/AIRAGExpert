@@ -17,7 +17,16 @@ class Retriever:
             question
         )
 
-        return self.qdrant_service.search(
+        results = self.qdrant_service.search(
             query_vector=query_vector,
             top_k=top_k,
         )
+
+        for result in results:
+            print(
+                result.score,
+                result.payload["filename"],
+                result.payload["chunk_index"],
+            )
+            
+        return results

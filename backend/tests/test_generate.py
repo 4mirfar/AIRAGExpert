@@ -8,13 +8,12 @@ def test_generate():
 
     service.client = Mock()
 
-    service.client.generate.return_value = {
-        "response": "FastAPI is a Python web framework."
-    }
+    mock_response = Mock()
+    mock_response.response = "FastAPI is a Python web framework."
 
-    result = service.generate(
-        "What is FastAPI?"
-    )
+    service.client.generate.return_value = mock_response
+
+    result = service.generate("What is FastAPI?")
 
     assert result == "FastAPI is a Python web framework."
 
