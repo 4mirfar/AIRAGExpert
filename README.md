@@ -1,6 +1,6 @@
 # 🚀 AI RAG Expert
 
-A production-grade Retrieval-Augmented Generation (RAG) platform built with **FastAPI**, **Morphic**, **Qdrant**, **PostgreSQL**, and **Redis**.
+A production-grade Retrieval-Augmented Generation (RAG) platform built with **FastAPI**, **Qdrant**, **PostgreSQL**, and **Redis**.
 
 The goal of this project is to build an enterprise-ready AI assistant capable of answering questions from private company documents while providing grounded, cited, and reliable responses.
 
