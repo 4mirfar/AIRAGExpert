@@ -72,3 +72,25 @@ class DocumentRepository:
         self.db.refresh(document)
 
         return document
+
+    def delete(self, document_id: str):
+        document = (
+            self.db.query(DocumentDB)
+            .filter(DocumentDB.id == document_id)
+            .first()
+        )
+
+        if document is None:
+            return False
+
+        self.db.delete(document)
+        self.db.commit()
+
+        return True
+
+    def get_all(self):
+        return (
+            self.db.query(DocumentDB)
+            .order_by(DocumentDB.created_at.desc())
+            .all()
+        )

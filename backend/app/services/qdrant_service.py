@@ -93,3 +93,22 @@ class QdrantService:
             )
 
             return results.points
+
+    from qdrant_client import models
+
+    def delete_document(self, document_id: str):
+        self.client.delete(
+            collection_name=self.COLLECTION_NAME,
+            points_selector=models.FilterSelector(
+                filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="document_id",
+                            match=models.MatchValue(
+                                value=document_id
+                            ),
+                        )
+                    ]
+                )
+            ),
+        )

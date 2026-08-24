@@ -13,7 +13,7 @@ class StorageService:
 
     async def save_file(
         self,
-        file: UploadFile,
+        file,
         category: str,
     ) -> dict:
 
