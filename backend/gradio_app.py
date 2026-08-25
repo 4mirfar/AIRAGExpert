@@ -404,6 +404,10 @@ def delete_document(document_id):
     3. Stored file
     """
 
+
+    print("🔥 delete_document called")
+    print("document_id:", repr(document_id))
+
     if not document_id:
         return (
             gr.update(
@@ -438,6 +442,18 @@ def delete_document(document_id):
         # ----------------------------------------------------
         # Delete vectors from Qdrant and Database
         # ----------------------------------------------------
+        # points, _ = qdrant_service.client.scroll(
+        #     collection_name=qdrant_service.COLLECTION_NAME,
+        #     limit=10,
+        #     with_payload=True,
+        #     with_vectors=False,
+        # )
+
+        # print("TOTAL:", len(points))
+
+        # for point in points:
+        #     print(point.payload)
+        # print(len(qdrant_service.get_chunks_by_document_id(document_id=document_id)))
 
         document_service.delete_document(
             document_id=document_id
@@ -540,7 +556,7 @@ async def upload_document(file):
         repository = DocumentRepository(db)
 
         document = repository.create(
-            document_id=result["id"],
+            document_id=result["document_id"],
             filename=result["filename"],
             stored_name=result["stored_name"],
             path=result["path"],
@@ -572,6 +588,7 @@ async def upload_document(file):
             document_id=document.id,
             document_metadata={
                 "filename": document.filename,
+                "document_id": result["document_id"],
                 "category": document.category,
             },
         )
@@ -655,7 +672,7 @@ def ask_question(message, history):
 
 with gr.Blocks(title="My RAG") as demo:
 
-    gr.Markdown("# 📚 My RAG Assistant")
+    gr.Markdown("# 📚 AI RAG Expert")
 
     # --------------------------------------------------------
     # Documents

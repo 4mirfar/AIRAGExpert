@@ -97,6 +97,7 @@ class QdrantService:
     from qdrant_client import models
 
     def delete_document(self, document_id: str):
+        print("inside qdrant service for delete")
         self.client.delete(
             collection_name=self.COLLECTION_NAME,
             points_selector=models.FilterSelector(
@@ -112,3 +113,27 @@ class QdrantService:
                 )
             ),
         )
+
+
+    def get_chunks_by_document_id(self, document_id: str):
+
+        response = self.client.scroll(
+            collection_name=self.COLLECTION_NAME,
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="document_id",
+                        match=models.MatchValue(
+                            value=str(document_id),
+                        ),
+                    )
+                ]
+            ),
+            limit=100,
+            with_payload=True,
+            with_vectors=False,
+        )
+
+        points, next_page = response
+
+        return points
