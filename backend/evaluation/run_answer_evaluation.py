@@ -57,8 +57,7 @@ print("\n==============================")
 print("       RAG Answer Evaluation")
 print("==============================")
 
-
-print("\nGeneration")
+print(f"\nTotal Questions:\n{results["total_questions"]}")
 
 print(
     f"Keyword Coverage   : "
@@ -81,3 +80,54 @@ print(
 )
 
 print("==============================\n")
+
+for result in results["results"]:
+
+    print("\n" + "=" * 60)
+
+
+    print(
+        f"Question:\n{result['question']}"
+    )
+
+    print(
+        f"\nExpected Answer:\n"
+        f"{result['expected_answer']}"
+    )
+
+    print(
+        f"\nGenerated Answer:\n"
+        f"{result['generated_answer']}"
+    )
+
+    print(
+        f"\nKeyword Coverage: "
+        f"{result['keyword_coverage']:.2%}"
+    )
+
+    print(
+        f"Correctness: "
+        f"{result['correctness']:.2f}"
+    )
+
+    print(
+        f"Relevance: "
+        f"{result['relevance']:.2f}"
+    )
+
+    print(
+        f"Faithfulness: "
+        f"{result['faithfulness']:.2f}"
+    )
+
+    print(
+        f"\nMissing Keywords: "
+        f"{result['missing_keywords']}"
+    )
+
+    print(
+        f"\nJudge Reason:\n"
+        f"{result['reason']}"
+    )
+
+print("\n" + "=" * 60)
