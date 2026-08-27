@@ -94,3 +94,18 @@ class DocumentRepository:
             .order_by(DocumentDB.created_at.desc())
             .all()
         )
+
+    def get_all_document_ids(self) -> list[str]:
+        """
+        Return the IDs of all documents stored in PostgreSQL.
+        """
+
+        documents = (
+            self.db.query(DocumentDB.id)
+            .all()
+        )
+
+        return [
+            str(document_id)
+            for document_id, in documents
+        ]

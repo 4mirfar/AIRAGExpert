@@ -115,7 +115,10 @@ class QdrantService:
         )
 
 
-    def get_chunks_by_document_id(self, document_id: str):
+    def get_chunks_by_document_id(
+        self,
+        document_id: str,
+    ) -> list[dict]:
 
         response = self.client.scroll(
             collection_name=self.COLLECTION_NAME,
@@ -129,11 +132,27 @@ class QdrantService:
                     )
                 ]
             ),
-            limit=100,
+            limit=1000,
             with_payload=True,
             with_vectors=False,
         )
 
-        points, next_page = response
+        points, _ = response
 
-        return points
+        chunks = []
+
+        for point in points:
+
+            payload = point.payload or {}
+
+            chunks.append(
+                {
+                    "chunk_id": str(point.id),
+                    "document_id": payload.get("document_id"),
+                    "text": payload.get("text", ""),
+                    "chunk_index": payload.get("chunk_index"),
+                    "filename": payload.get("filename"),
+                }
+            )
+
+        return chunks

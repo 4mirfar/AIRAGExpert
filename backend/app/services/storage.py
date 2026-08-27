@@ -106,7 +106,7 @@ class StorageService:
         )
 
         return {
-            "documen_id": document_id,
+            "document_id": document_id,
             "filename": filename,
             "stored_name": stored_name,
             "path": str(destination),
