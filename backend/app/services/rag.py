@@ -50,6 +50,7 @@ class RAGService:
             "answer": answer,
             "sources": [
                 {
+                    "chunk_id": str(result.id),
                     "filename": result.payload.get("filename"),
                     "chunk_index": result.payload.get("chunk_index"),
                     "score": result.score,
@@ -57,3 +58,5 @@ class RAGService:
                 for result in results
             ],
         }
+
+    

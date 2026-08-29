@@ -57,6 +57,15 @@ class GenerationEvaluator:
                 top_k=5,
             )
 
+            retrieved_sources = rag_result["sources"]
+
+            correct_rank = self._get_correct_rank(
+                retrieved_sources=retrieved_sources,
+                expected_chunk_ids=sample[
+                    "expected_chunk_ids"
+                ],
+            )
+
             generated_answer = rag_result[
                 "answer"
             ]
@@ -139,6 +148,10 @@ class GenerationEvaluator:
 
                     "keyword_coverage":
                         keyword_coverage,
+
+
+                    "correct_rank":
+                        correct_rank,
 
                     "correctness":
                         judge_result[
@@ -245,3 +258,38 @@ class GenerationEvaluator:
             "missing_keywords":
                 missing_keywords,
         }
+
+
+    def _get_correct_rank(
+        self,
+        retrieved_sources,
+        expected_chunk_ids,
+    ):
+        """
+        Find the position of the expected chunk
+        in the retrieved results.
+
+        Returns:
+            1, 2, 3, ...
+            None if the expected chunk was not retrieved.
+        """
+
+        expected_chunk_ids = {
+            str(chunk_id)
+            for chunk_id in expected_chunk_ids
+        }
+
+        for rank, source in enumerate(
+            retrieved_sources,
+            start=1,
+        ):
+
+            # RAGService already gives us the chunk_id.
+            chunk_id = str(
+                source["chunk_id"]
+            )
+
+            if chunk_id in expected_chunk_ids:
+                return rank
+
+        return None

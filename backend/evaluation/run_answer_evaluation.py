@@ -1,6 +1,7 @@
 # CAUTION! FIRST RUN run_retrieval_evaluation.py then this file
 
 import json
+from pathlib import Path
 
 from app.services.embedding import EmbeddingService
 from app.services.qdrant_service import QdrantService
@@ -36,6 +37,35 @@ evaluator = GenerationEvaluator(
 
 
 
+def save_evaluation_results(
+    results: dict,
+    output_path: str = "evaluation/generation_results.json",
+):
+    path = Path(output_path)
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    with path.open(
+        "w",
+        encoding="utf-8",
+    ) as file:
+
+        json.dump(
+            results,
+            file,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+    print(
+        f"\nEvaluation results saved to: {path}"
+    )
+
+
+
 # ---------------------------------------------------------
 # Load dataset
 # ---------------------------------------------------------
@@ -51,6 +81,10 @@ with open(
 
 results = evaluator.evaluate(
     dataset=dataset,
+)
+
+save_evaluation_results(
+    results
 )
 
 print("\n==============================")
