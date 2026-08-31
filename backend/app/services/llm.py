@@ -20,3 +20,22 @@ class LLMService:
         )
 
         return response.response.strip()
+
+
+    # TODO: debug generate stream for ai like generation in ui
+    # Generate Stream
+    # def generate(self, prompt):
+
+    #     stream = self.client.chat(
+    #         model=self.model,
+    #         messages=[
+    #             {
+    #                 "role": "user",
+    #                 "content": prompt,
+    #             }
+    #         ],
+    #         stream=True,
+    #     )
+
+    #     for chunk in stream:
+    #         yield chunk["message"]["content"]

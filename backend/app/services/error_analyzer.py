@@ -75,7 +75,7 @@ class ErrorAnalyzer:
                     "retrieved within top-5."
                 )
 
-            elif correct_rank > 1 and (
+            elif correct_rank > 2 and (
                 correctness < 0.8
                 or relevance < 0.8
             ):
@@ -97,13 +97,13 @@ class ErrorAnalyzer:
                     "supported by the retrieved context."
                 )
 
-            elif correct_rank > 1:
+            elif correct_rank > 2:
 
                 category = "RETRIEVAL_RANKING"
 
                 explanation = (
                     "The correct chunk was retrieved "
-                    "but was not ranked first."
+                    "but was not ranked first or second."
                 )
 
             else:

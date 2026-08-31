@@ -111,10 +111,12 @@ class IngestionService:
 
         for index, chunk_text in enumerate(raw_chunks):
 
+            print ("Document_Metadata: ", document_metadata)
+            print ( "parsed_document[metadata]", parsed_document["metadata"])
             metadata = self.metadata_builder.build(
                 document_metadata={
-                    **document_metadata,
                     **parsed_document["metadata"],
+                    **document_metadata,
                 },
                 chunk_index=index,
             )
