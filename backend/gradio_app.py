@@ -33,6 +33,37 @@ rag_service = RAGService(
 )
 
 
+## gradio functions local:
+
+def convert_history( history: list | None) -> list[dict]:
+    if not history:
+        return []
+
+    messages = []
+
+    for message in history:
+        role = message.get("role")
+        content = message.get("content")
+
+        if not role or not content:
+            continue
+
+        if isinstance(content, list):
+            content_text = content[0]["text"]
+
+        if content_text:
+            messages.append(
+                {
+                    "role": role,
+                    "content": content_text,
+                }
+            )
+
+    return messages
+
+#-------------------------------------------------------------
+
+
 # ============================================================
 # Database
 # ============================================================
@@ -389,9 +420,12 @@ def ask_question(message, history):
         )
 
     try:
-
+        messages = convert_history(history)
+        # print(messages)
         result = rag_service.ask(
             question=message,
+            history=history,
+            messages=messages,
             top_k=5,
         )
 

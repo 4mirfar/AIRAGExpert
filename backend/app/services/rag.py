@@ -2,6 +2,7 @@ from app.retrieval.retriever import Retriever
 from app.retrieval.context_builder import ContextBuilder
 from app.rag.prompt_builder import PromptBuilder
 from app.services.llm import LLMService
+from app.rag.query_rewriter import QueryRewriter
 
 
 class RAGService:
@@ -22,32 +23,84 @@ class RAGService:
 
         self.llm_service = llm_service or LLMService()
 
+        self.query_rewriter = QueryRewriter(
+            llm_service=self.llm_service,
+        )
+
     def ask(
         self,
         question: str,
+        history: list | None = None,
+        messages: dict | None = None,
         top_k: int = 5,
-    ) :
+    ):
 
-        # 1. Retrieve relevant chunks
-        results = self.retriever.retrieve(
+        # -----------------------------------------
+        # 1. Rewrite question for retrieval
+        # -----------------------------------------
+
+        search_query = self.query_rewriter.rewrite(
             question=question,
+            history=history,
+        )
+
+        print("Original question:", question)
+        print("Search query:", search_query)
+
+        # -----------------------------------------
+        # 2. Retrieve relevant chunks
+        # -----------------------------------------
+
+        results = self.retriever.retrieve(
+            question=search_query,
             top_k=top_k,
         )
 
-        # 2. Build context
-        context = self.context_builder.build(results)
+        # -----------------------------------------
+        # 3. Build context
+        # -----------------------------------------
 
-        # 3. Build prompt
+        context = self.context_builder.build(
+            results
+        )
+
+        # -----------------------------------------
+        # 4. Build final prompt
+        # -----------------------------------------
+
         prompt = self.prompt_builder.build(
             question=question,
             context=context,
         )
 
-        # 4. Generate answer
-        answer = self.llm_service.generate(prompt)
+        # Create messages history
+        messages = [
+            {
+                "role": "system",
+                "content": self.prompt_builder.SYSTEM_PROMPT
+            },
+            *messages,
+            {
+                "role": "user",
+                "content": f"""Context:
+                        {context}
+
+                        Question:
+                        {question}"""
+            }
+
+        ]
+        # print(messages)
+
+        # -----------------------------------------
+        # 5. Generate answer
+        # -----------------------------------------
+
+        answer = self.llm_service.chat(messages=messages)
 
         return {
             "answer": answer,
+            "search_query": search_query,
             "sources": [
                 {
                     "chunk_id": str(result.id),

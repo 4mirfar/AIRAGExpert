@@ -21,8 +21,16 @@ class LLMService:
 
         return response.response.strip()
 
+    def chat(self, messages: list[dict]) -> str:
+        response = self.client.chat(
+            model=self.model,
+            messages=messages
+        )
+
+        return response.message.content.strip()
 
     # TODO: debug generate stream for ai like generation in ui
+    
     # Generate Stream
     # def generate(self, prompt):
 

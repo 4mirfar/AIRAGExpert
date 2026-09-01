@@ -20,7 +20,7 @@ Answer:
         context: str,
     ) -> str:
 
-        return f"""{self.SYSTEM_PROMPT}
+        return f"""
 
 Context:
 {context}
