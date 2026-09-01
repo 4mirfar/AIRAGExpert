@@ -1,692 +1,614 @@
-# 🚀 AI RAG Expert
+# AI RAG Expert
 
-AI RAG Expert is a production-oriented Retrieval-Augmented Generation (RAG) platform for intelligent question answering over private documents.
+AI RAG Expert is an end-to-end Retrieval-Augmented Generation (RAG) system for interacting with uploaded documents through a conversational interface.
 
-The system provides a complete document-to-answer pipeline: documents are validated, stored, parsed, chunked, embedded, indexed in Qdrant, retrieved based on semantic similarity, and finally passed as grounded context to a local LLM through Ollama.
-
-The project is designed with modular AI engineering and production-oriented architecture in mind, with a clear path toward advanced retrieval, evaluation, observability, authentication, and scalable deployment.
+The system combines document ingestion, semantic search, conversational query rewriting, vector storage, and local LLM inference to generate grounded answers with source references.
 
 ---
 
-## 🎯 Overview
-
-AI RAG Expert allows users to upload private documents and ask questions about their content.
-
-Instead of relying only on the knowledge stored inside an LLM, the system retrieves relevant information from the user's documents and provides that information to the model as context.
-
-### Question Answering Pipeline
+## 🏗️ Architecture
 
 ```text
-                    User
-                     │
-                     ▼
-               User Question
-                     │
-                     ▼
-              Embedding Model
-                     │
-                     ▼
-                Qdrant Search
-                     │
-                     ▼
-              Relevant Chunks
-                     │
-                     ▼
-              Context Builder
-                     │
-                     ▼
-              Prompt Builder
-                     │
-                     ▼
-                  Ollama
-                     │
-                     ▼
-              Grounded Answer
-````
-
-### Document Ingestion Pipeline
-
-```text
-              Document Upload
-                     │
-                     ▼
-              File Validation
-                     │
-                     ▼
-               File Storage
-                     │
-                     ▼
-                PostgreSQL
-                     │
-                     ▼
-              Document Parser
-                     │
-                     ▼
-                  Chunking
-                     │
-                     ▼
-                Embeddings
-                     │
-                     ▼
-                  Qdrant
+                              ┌─────────────────────┐
+                              │      Gradio UI      │
+                              │                     │
+                              │  • Chat Interface   │
+                              │  • File Upload      │
+                              │  • Document Manager │
+                              │  • Source Display   │
+                              └──────────┬──────────┘
+                                         │
+                              Question + Chat History
+                                         │
+                                         ▼
+                              ┌─────────────────────┐
+                              │      RAGService     │
+                              │                     │
+                              │   Main Orchestrator │
+                              └──────────┬──────────┘
+                                         │
+                    ┌────────────────────┴────────────────────┐
+                    │                                         │
+                    ▼                                         ▼
+          ┌─────────────────────┐                   ┌─────────────────────┐
+          │   Query Rewriter    │                   │    Chat History     │
+          │                     │                   │                     │
+          │ Uses conversation   │                   │ Passed directly to  │
+          │ history to resolve │                   │ the LLM for         │
+          │ contextual queries  │                   │ conversational      │
+          └──────────┬──────────┘                   │ understanding       │
+                     │                              └──────────┬──────────┘
+                     │                                         │
+                     ▼                                         │
+              Standalone Query                                 │
+                     │                                         │
+                     ▼                                         │
+          ┌─────────────────────┐                              │
+          │  Embedding Service  │                              │
+          └──────────┬──────────┘                              │
+                     │                                         │
+                     ▼                                         │
+          ┌─────────────────────┐                              │
+          │       Qdrant        │                              │
+          │                     │                              │
+          │   Vector Search     │                              │
+          └──────────┬──────────┘                              │
+                     │                                         │
+                     ▼                                         │
+          ┌─────────────────────┐                              │
+          │   Retrieved Chunks  │                              │
+          └──────────┬──────────┘                              │
+                     │                                         │
+                     ▼                                         │
+          ┌─────────────────────┐                              │
+          │   Context Builder   │                              │
+          └──────────┬──────────┘                              │
+                     │                                         │
+                     └──────────────────┬──────────────────────┘
+                                        │
+                                        ▼
+                              ┌─────────────────────┐
+                              │       Ollama        │
+                              │                     │
+                              │  System Prompt      │
+                              │  + Chat History     │
+                              │  + Retrieved Context│
+                              │  + Current Question │
+                              └──────────┬──────────┘
+                                         │
+                                         ▼
+                              ┌─────────────────────┐
+                              │   Answer + Sources  │
+                              └──────────┬──────────┘
+                                         │
+                                         ▼
+                                  ┌─────────────┐
+                                  │  Gradio UI  │
+                                  └─────────────┘
 ```
 
 ---
 
-# ✨ Key Features
+# 📄 Document Ingestion Pipeline
 
-* 📄 PDF, DOCX, TXT and Markdown document ingestion
-* 🔍 Semantic vector search
-* 🧠 Embedding-based retrieval
-* 🤖 Local LLM inference using Ollama
-* 🗄️ PostgreSQL document metadata management
-* 🔎 Qdrant vector database
-* 🧩 Modular parsing and chunking pipeline
-* 📝 Context-aware prompt construction
-* 🔗 Document-level chunk management using `document_id`
-* 🗑️ Document deletion across Qdrant, PostgreSQL and file storage
-* 🌐 FastAPI backend
-* 💬 Gradio interface
-* 🧪 Automated testing with Pytest
-* 🐳 Docker-based infrastructure
-* 🔐 Architecture prepared for multi-user support
-* 📊 Designed for future evaluation and monitoring
-
----
-
-# 🏗️ Architecture
+Before documents can be queried, they pass through an ingestion pipeline.
 
 ```text
-                         ┌─────────────────┐
-                         │     Gradio      │
-                         │   User Interface│
-                         └────────┬────────┘
-                                  │
-                                  ▼
-                         ┌─────────────────┐
-                         │     FastAPI     │
-                         │    Backend      │
-                         └────────┬────────┘
-                                  │
-                    ┌─────────────┼─────────────┐
-                    │             │             │
-                    ▼             ▼             ▼
-             ┌───────────┐ ┌───────────┐ ┌───────────┐
-             │ PostgreSQL│ │  Qdrant   │ │  Ollama   │
-             │ Metadata  │ │  Vectors  │ │    LLM    │
-             └───────────┘ └───────────┘ └───────────┘
-                    │             │
-                    └──────┬──────┘
-                           ▼
-                     RAG Service
-                           │
-                ┌──────────┴──────────┐
-                │                     │
-                ▼                     ▼
-            Retriever          Context Builder
-                                      │
-                                      ▼
-                               Prompt Builder
-                                      │
-                                      ▼
-                                   Ollama
+             Uploaded Document
+                     │
+                     ▼
+          ┌─────────────────────┐
+          │  Document Service   │
+          │                     │
+          │  • Validation       │
+          │  • File Storage     │
+          │  • Database Record  │
+          └──────────┬──────────┘
+                     │
+                     ▼
+             ┌───────────────┐
+             │    Parser     │
+             │               │
+             │ PDF / DOCX    │
+             │ TXT / etc.    │
+             └───────┬───────┘
+                     │
+                     ▼
+             ┌───────────────┐
+             │    Chunker    │
+             │               │
+             │ Document      │
+             │      ↓        │
+             │ Text Chunks   │
+             └───────┬───────┘
+                     │
+                     ▼
+          ┌─────────────────────┐
+          │  Metadata Builder   │
+          │                     │
+          │  • document_id     │
+          │  • chunk_id        │
+          │  • filename        │
+          │  • chunk_index     │
+          │  • page            │
+          │  • section         │
+          │  • created_at      │
+          └──────────┬──────────┘
+                     │
+                     ▼
+          ┌─────────────────────┐
+          │  Embedding Service  │
+          │                     │
+          │  Text → Vectors     │
+          └──────────┬──────────┘
+                     │
+                     ▼
+              ┌─────────────┐
+              │   Qdrant   │
+              │             │
+              │ Vector      │
+              │ + Text      │
+              │ + Metadata  │
+              └─────────────┘
 ```
 
 ---
 
-# 🧠 RAG Architecture
+# 🔍 Retrieval Pipeline
 
-The RAG system is divided into independent services.
-
-## Document Ingestion
-
-The ingestion pipeline handles the complete lifecycle of an uploaded document:
+When a user asks a question, the system first transforms the question into a retrieval-friendly query.
 
 ```text
-Upload
-  │
-  ▼
-Validation
-  │
-  ▼
-Storage
-  │
-  ▼
-PostgreSQL Record
-  │
-  ▼
-Parsing
-  │
-  ▼
-Chunking
-  │
-  ▼
+User Question
+      │
+      ▼
+Chat History
+      │
+      ▼
+Query Rewriter
+      │
+      ▼
+Standalone Retrieval Query
+      │
+      ▼
 Embedding
-  │
-  ▼
-Qdrant
+      │
+      ▼
+Qdrant Vector Search
+      │
+      ▼
+Top-K Relevant Chunks
+      │
+      ▼
+Context Builder
+      │
+      ▼
+Retrieved Context
 ```
 
-Each document receives a unique `document_id`.
-
-This ID is used to associate every chunk with its original document.
-
----
-
-## Retrieval
-
-When a user asks a question:
+### Example
 
 ```text
-Question
-   │
-   ▼
-Embedding
-   │
-   ▼
-Query Vector
-   │
-   ▼
-Qdrant
-   │
-   ▼
-Top-K Similar Chunks
+Conversation:
+
+User:
+What is DEJEMUL-GATOR?
+
+Assistant:
+DEJEMUL-GATOR is a demulsifier.
+
+User:
+Who produces it?
 ```
 
-The retriever returns the most semantically relevant chunks.
-
-Each chunk contains metadata such as:
-
-```json
-{
-  "document_id": "647a9a57-1a57-4978-84aa-0176848015bb",
-  "filename": "resume.pdf",
-  "chunk_index": 3,
-  "text": "AI Engineer with experience in..."
-}
-```
-
----
-
-# 🧩 Context Builder
-
-The retrieved chunks are transformed into a structured context for the LLM.
-
-Example:
+The Query Rewriter transforms the contextual question:
 
 ```text
-[Source 1]
-File: resume.pdf
-Chunk: 3
-AI Engineer with experience in...
-
-[Source 2]
-File: resume.pdf
-Chunk: 5
-Experience with FastAPI and Qdrant...
+Who produces it?
 ```
 
-This gives the LLM explicit source boundaries and document metadata.
-
----
-
-# 📝 Prompt Builder
-
-The prompt builder combines:
-
-* System instructions
-* Retrieved context
-* User question
-
-The LLM is instructed to answer only using the supplied context.
-
-If the required information cannot be found, the model is instructed to state that there is not enough information rather than inventing an answer.
-
----
-
-# 🤖 LLM
-
-The project uses **Ollama** for local LLM inference.
-
-This provides:
-
-* Local inference
-* No dependency on external LLM APIs
-* Greater control over data privacy
-* Ability to switch between locally available models
-
-Example:
+into:
 
 ```text
-Context + Question
-        │
-        ▼
-      Ollama
-        │
-        ▼
-      Answer
+Who produces DEJEMUL-GATOR?
+```
+
+The standalone query is then embedded and sent to Qdrant for retrieval.
+
+---
+
+# 💬 Conversational RAG
+
+Chat history is maintained by the Gradio chat session.
+
+The history is used in **two places**:
+
+### 1. Query Rewriting
+
+The history helps the Query Rewriter understand contextual references:
+
+```text
+it
+this
+that
+they
+he
+she
+```
+
+and convert them into standalone retrieval queries.
+
+### 2. Final Answer Generation
+
+The same conversation history is passed directly to Ollama through its chat interface.
+
+```text
+System Prompt
+      +
+Conversation History
+      +
+Retrieved Context
+      +
+Current Question
+      ↓
+    Ollama
+      ↓
+    Answer
+```
+
+This allows the LLM to maintain conversational continuity while also grounding its answer in retrieved documents.
+
+---
+
+# 🧠 RAG Generation Flow
+
+The final generation process combines conversational information with retrieved document context.
+
+```text
+                    ┌──────────────────┐
+                    │   System Prompt  │
+                    └────────┬─────────┘
+                             │
+                    ┌────────▼─────────┐
+                    │  Chat History    │
+                    └────────┬─────────┘
+                             │
+                    ┌────────▼─────────┐
+                    │ Retrieved Context│
+                    └────────┬─────────┘
+                             │
+                    ┌────────▼─────────┐
+                    │ Current Question │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                       ┌───────────┐
+                       │  Ollama   │
+                       │ Chat API  │
+                       └─────┬─────┘
+                             │
+                             ▼
+                           Answer
 ```
 
 ---
 
 # 🗄️ Data Architecture
 
-## PostgreSQL
-
-PostgreSQL stores document metadata and document lifecycle information.
-
-Example:
+The application uses PostgreSQL for document-level persistence and Qdrant for vector storage.
 
 ```text
-documents
-├── id
-├── filename
-├── stored_name
-├── path
-├── extension
-├── mime_type
-├── size
-├── category
-├── status
-└── created_at
+                    PostgreSQL
+                         │
+                         │
+                  Document Records
+                         │
+                         │
+                         ▼
+                    document_id
+                         │
+                         │
+                         ▼
+                      Qdrant
+                         │
+              ┌──────────┴──────────┐
+              │                     │
+           Vector                 Payload
+              │                     │
+              │              ┌──────┴──────────┐
+              │              │                 │
+              │             text          document_id
+              │                           filename
+              │                           chunk_id
+              │                           chunk_index
+              │                           metadata
+              │
+              └───────────────► Retrieval
 ```
 
 ---
 
-## Qdrant
+# 📦 Qdrant Payload
 
-Qdrant stores vector representations of document chunks.
+Each stored chunk contains both its vector representation and metadata.
 
-Each point contains both the vector and metadata:
-
-```json
+```python
 {
-  "document_id": "647a9a57-1a57-4978-84aa-0176848015bb",
-  "filename": "resume.pdf",
-  "chunk_index": 0,
-  "text": "..."
+    "text": "...",
+    "document_id": "...",
+    "filename": "...",
+    "chunk_id": "...",
+    "chunk_index": 0,
+    "page": None,
+    "section": None,
+    "created_at": "..."
 }
 ```
 
-The `document_id` is the connection between PostgreSQL and Qdrant.
-
-This makes document-level operations possible without relying on filenames.
+This allows retrieved chunks to be traced back to their original document and displayed as sources in the UI.
 
 ---
 
-# 🗑️ Document Lifecycle
+# 🧩 Core Components
 
-A document is treated as a single logical entity even though its data is distributed across multiple systems.
-
-### Upload
-
-```text
-                 Document
-                     │
-                     ▼
-                Validation
-                     │
-                     ▼
-                 File Store
-                     │
-                     ▼
-                PostgreSQL
-                     │
-                     ▼
-              Parse + Chunk
-                     │
-                     ▼
-                Embeddings
-                     │
-                     ▼
-                  Qdrant
-```
-
-### Delete
-
-```text
-                document_id
-                     │
-          ┌──────────┼──────────┐
-          ▼          ▼          ▼
-       Qdrant    PostgreSQL   Storage
-       Chunks      Record       File
-          │          │          │
-          └──────────┴──────────┘
-                     │
-                     ▼
-                Document Gone
-```
-
-This prevents orphaned vectors, database records, or physical files.
+| Component             | Responsibility                                                    |
+| --------------------- | ----------------------------------------------------------------- |
+| **Gradio**            | Chat interface, file uploads, document management, source display |
+| **RAGService**        | Orchestrates the complete RAG pipeline                            |
+| **QueryRewriter**     | Converts contextual questions into standalone retrieval queries   |
+| **Retriever**         | Performs semantic retrieval                                       |
+| **QdrantService**     | Manages vector storage and similarity search                      |
+| **ContextBuilder**    | Converts retrieved chunks into LLM context                        |
+| **PromptBuilder**     | Defines system instructions and generation structure              |
+| **LLMService**        | Interfaces with Ollama                                            |
+| **Embedding Service** | Converts text into vector representations                         |
+| **Ingestion Service** | Coordinates document ingestion                                    |
+| **Parser**            | Extracts text from uploaded documents                             |
+| **Chunker**           | Splits documents into chunks                                      |
+| **MetadataBuilder**   | Generates chunk-level metadata                                    |
+| **PostgreSQL**        | Stores document records and application metadata                  |
 
 ---
 
 # 🛠️ Technology Stack
 
-### Backend
-
-* Python
-* FastAPI
-* SQLAlchemy
-* Pydantic
-
-### AI / RAG
-
-* Ollama
-* Qdrant
-* Embedding Models
-* Retrieval-Augmented Generation
-* Prompt Engineering
-
-### Databases
-
-* PostgreSQL
-* Qdrant
-* Redis
-
-### Frontend / Interface
-
-* Gradio
-
-### Infrastructure
-
-* Docker
-* Docker Compose
-
-### Testing
-
-* Pytest
-
----
-
-# 📂 Project Structure
-
 ```text
-AI-RAG-Expert/
+Python
 │
-├── backend/
-│   │
-│   ├── app/
-│   │   ├── api/
-│   │   ├── database/
-│   │   ├── models/
-│   │   ├── repositories/
-│   │   ├── schemas/
-│   │   └── services/
-│   │
-│   ├── tests/
-│   ├── uploads/
-│   ├── gradio_app.py
-│   ├── main.py
-│   └── Dockerfile
+├── Gradio
+│      └── Web UI / Chat
 │
-├── docker-compose.yml
-├── .env
-└── README.md
+├── PostgreSQL
+│      └── Document Metadata
+│
+├── Qdrant
+│      └── Vector Database
+│
+├── Ollama
+│      └── Local LLM Inference
+│
+├── Embedding Model
+│      └── Semantic Representations
+│
+├── FastAPI
+│      └── Application/API Components
+│
+└── Docker
+       └── Infrastructure
 ```
 
 ---
 
-# 🧪 Testing
-
-The project uses Pytest to test individual components and the complete RAG pipeline.
-
-Current tests cover:
-
-* Context Builder
-* Prompt Builder
-* Document Repository
-* Qdrant connectivity
-* Retriever
-* LLM generation
-* RAG pipeline
-
-Run the tests:
-
-```bash
-cd backend
-
-python -m pytest -v
-```
-
----
-
-# 🚀 Running the Project
-
-## 1. Start infrastructure
-
-```bash
-docker compose up -d
-```
-
-Check running containers:
-
-```bash
-docker ps
-```
-
-The infrastructure includes:
-
-* PostgreSQL
-* Qdrant
-* Redis
-
----
-
-## 2. Start the Backend
-
-Activate the virtual environment:
-
-```bash
-source venv/bin/activate
-```
-
-Run FastAPI:
-
-```bash
-uvicorn main:app --reload
-```
-
-API documentation:
+# 🔄 Complete End-to-End Flow
 
 ```text
-http://localhost:8000/docs
+                         DOCUMENT INGESTION
+                                │
+                                ▼
+                         Upload Document
+                                │
+                                ▼
+                            Validation
+                                │
+                                ▼
+                             Parsing
+                                │
+                                ▼
+                            Chunking
+                                │
+                                ▼
+                           Metadata
+                                │
+                                ▼
+                           Embeddings
+                                │
+                                ▼
+                             Qdrant
+                                │
+                                │
+════════════════════════════════╪════════════════════════════════
+                                │
+                                │
+                         USER QUERY
+                                │
+                                ▼
+                         User Question
+                                │
+                                ▼
+                          Chat History
+                                │
+                   ┌────────────┴────────────┐
+                   │                         │
+                   ▼                         ▼
+             Query Rewriter              Ollama
+                   │                         ▲
+                   ▼                         │
+            Standalone Query                │
+                   │                         │
+                   ▼                         │
+              Embedding                     │
+                   │                         │
+                   ▼                         │
+                Qdrant                      │
+                   │                         │
+                   ▼                         │
+             Top-K Chunks                   │
+                   │                         │
+                   ▼                         │
+             Context Builder                │
+                   │                         │
+                   └───────────┬─────────────┘
+                               │
+                               ▼
+                             Ollama
+                               │
+                               ▼
+                         Generated Answer
+                               │
+                         ┌─────┴─────┐
+                         ▼           ▼
+                      Answer       Sources
+                         │           │
+                         └─────┬─────┘
+                               ▼
+                           Gradio UI
 ```
 
 ---
 
-## 3. Start Ollama
+# 📊 Evaluation
 
-Run Ollama locally:
+AI RAG Expert includes an evaluation pipeline covering **retrieval quality**, **answer quality**, and **failure analysis**.
 
-```bash
-ollama serve
-```
+## Retrieval Evaluation
 
-Pull a model:
+Retrieval performance is measured using Recall@K, which evaluates whether the expected document chunk appears within the top-K retrieved results.
 
-```bash
-ollama pull llama3.1
-```
+| Metric       | Description                                       |
+| ------------ | ------------------------------------------------- |
+| **Recall@1** | Expected chunk retrieved as the top result        |
+| **Recall@3** | Expected chunk retrieved within the top 3 results |
+| **Recall@5** | Expected chunk retrieved within the top 5 results |
+
+Current retrieval results:
+
+| Metric       |       Score |
+| ------------ | ----------: |
+| **Recall@1** |  **66.67%** |
+| **Recall@3** |  **86.67%** |
+| **Recall@5** | **100.00%** |
+
+The results show that the correct chunk was retrieved within the top 5 results for all evaluation questions.
 
 ---
 
-## 4. Start Gradio
+## RAG Answer Evaluation
 
-```bash
-python gradio_app.py
-```
+The generated answers are evaluated across four dimensions:
 
-The interface will be available at:
+| Metric               |      Score |
+| -------------------- | ---------: |
+| **Keyword Coverage** | **71.67%** |
+| **Correctness**      | **86.00%** |
+| **Relevance**        | **86.67%** |
+| **Faithfulness**     | **83.33%** |
+
+### Metrics
+
+**Keyword Coverage**
+Measures how many expected keywords from the reference answer appear in the generated answer.
+
+**Correctness**
+Measures whether the generated answer correctly addresses the expected answer.
+
+**Relevance**
+Measures whether the generated answer directly addresses the user's question.
+
+**Faithfulness**
+Measures whether the generated answer is supported by the retrieved context rather than introducing unsupported information.
+
+---
+
+## 🔬 Error Analysis
+
+The evaluation pipeline also categorizes failed questions to identify where errors occur in the RAG pipeline.
 
 ```text
-http://127.0.0.1:7860
+Total Questions       : 15
+Success               : 7
+
+Retrieval Failures    : 1
+Retrieval Ranking     : 1
+Generation Failures   : 1
+Faithfulness Failures : 5
 ```
 
----
+### Failure Categories
 
-# 📊 Current Development Status
-
-| Component             | Status        |
-| --------------------- | ------------- |
-| Infrastructure        | ✅ Complete    |
-| Docker Compose        | ✅ Complete    |
-| PostgreSQL            | ✅ Complete    |
-| Qdrant                | ✅ Complete    |
-| Redis                 | 🟢 Configured |
-| File Storage          | ✅ Complete    |
-| File Validation       | ✅ Complete    |
-| Document Parsing      | ✅ Complete    |
-| Chunking              | ✅ Complete    |
-| Ingestion Pipeline    | ✅ Complete    |
-| Embeddings            | 🟢 Functional |
-| Qdrant Indexing       | 🟢 Functional |
-| Semantic Retrieval    | 🟢 Functional |
-| Context Builder       | ✅ Complete    |
-| Prompt Builder        | ✅ Complete    |
-| Ollama Integration    | ✅ Complete    |
-| RAG Pipeline          | ✅ Functional  |
-| Document Deletion     | 🟢 Functional |
-| FastAPI API           | 🟢 Functional |
-| Gradio UI             | 🟢 Functional |
-| Hybrid Search         | 🚧 Planned    |
-| Evaluation            | 🚧 Planned    |
-| Authentication        | 🚧 Planned    |
-| Monitoring            | 🚧 Planned    |
-| Production Deployment | 🚧 Planned    |
+| Category                 | Description                                                                                    |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| **Retrieval Failure**    | The expected information was not retrieved                                                     |
+| **Retrieval Ranking**    | The correct chunk was retrieved but ranked too low                                             |
+| **Generation Failure**   | Retrieved information was available but the generated answer was incorrect or incomplete       |
+| **Faithfulness Failure** | The generated answer contained information not sufficiently supported by the retrieved context |
 
 ---
 
-# 🗺️ Roadmap
+## 🧪 Detailed Failure Analysis
 
-## Phase 1 — Core RAG ✅
+For failed questions, the evaluation system reports:
 
-* [x] Document ingestion
-* [x] File validation
-* [x] Parsing
-* [x] Chunking
-* [x] Embeddings
-* [x] Qdrant indexing
-* [x] Semantic retrieval
-* [x] Context construction
-* [x] Prompt construction
-* [x] Local LLM generation
-* [x] End-to-end RAG pipeline
+* Original question
+* Failure category
+* Explanation
+* Expected answer
+* Generated answer
+* Correct chunk rank
+* Correctness score
+* Relevance score
+* Faithfulness score
 
-## Phase 2 — Document Management ✅
+This makes it possible to distinguish between **retrieval problems** and **generation problems**, rather than treating every incorrect answer as a single type of failure.
 
-* [x] Document upload
-* [x] Document listing
-* [x] Document metadata
-* [x] Document deletion
-* [x] Qdrant document-level filtering
-* [x] PostgreSQL document lifecycle
-
-## Phase 3 — Advanced Retrieval
-
-* [ ] Hybrid vector + keyword retrieval
-* [ ] Metadata filtering
-* [ ] Query expansion
-* [ ] Query rewriting
-* [ ] Reranking
-* [ ] Retrieval evaluation
-
-## Phase 4 — Answer Quality
-
-* [ ] Source citations
-* [ ] Faithfulness evaluation
-* [ ] Context precision
-* [ ] Context recall
-* [ ] Answer relevance
-* [ ] RAGAS
-* [ ] DeepEval
-
-## Phase 5 — Production Features
-
-* [ ] Authentication
-* [ ] Multi-user support
-* [ ] Document-level access control
-* [ ] Redis caching
-* [ ] Background ingestion jobs
-* [ ] Logging
-* [ ] Metrics
-* [ ] Observability
-* [ ] Rate limiting
-* [ ] Feedback system
-
-## Phase 6 — Deployment
-
-* [ ] Production Docker images
-* [ ] CI/CD
-* [ ] GitHub Actions
-* [ ] Kubernetes
-* [ ] Horizontal scaling
-* [ ] Production monitoring
-
----
-
-# 🎯 Project Vision
-
-AI RAG Expert is built to demonstrate the engineering of a complete RAG system rather than simply wrapping an LLM API.
-
-The project focuses on the complete lifecycle of enterprise document intelligence:
+### Example Analysis Flow
 
 ```text
-             Documents
-                 │
-                 ▼
-             Ingestion
-                 │
-                 ▼
-             Processing
-                 │
-                 ▼
-             Chunking
-                 │
-                 ▼
-             Embeddings
-                 │
-                 ▼
-          Vector Storage
-                 │
-                 ▼
-             Retrieval
-                 │
-                 ▼
-       Context Construction
-                 │
-                 ▼
-         Prompt Engineering
-                 │
-                 ▼
-          Local LLM
-                 │
-                 ▼
-        Grounded Answers
-                 │
-                 ▼
-          Evaluation
-                 │
-                 ▼
-          Production
+Question
+   │
+   ▼
+Retrieval
+   │
+   ├── Correct chunk not found
+   │       └── Retrieval Failure
+   │
+   ├── Correct chunk found but ranked low
+   │       └── Retrieval Ranking
+   │
+   └── Correct context retrieved
+           │
+           ▼
+        Generation
+           │
+           ├── Incorrect answer
+           │       └── Generation Failure
+           │
+           └── Unsupported claim
+                   └── Faithfulness Failure
 ```
 
-The long-term objective is to evolve the system into a scalable enterprise knowledge platform capable of working with private organizational data while maintaining reliable retrieval, grounded generation, traceability, and operational visibility.
+The evaluation framework is designed to be extensible as retrieval and generation components evolve.
 
----
 
-# 🔐 Privacy
+# 🚧 Future Improvements
 
-The architecture supports local document processing and local LLM inference.
+The current architecture can be extended with:
 
-Documents can remain within the application's infrastructure while embeddings, metadata, and vector representations are managed by self-hosted services.
-
----
-
-# 📄 License
-
-This project is licensed under the **Apache License 2.0**.
-
-See the `LICENSE` file for the complete license text.
-
+* Hybrid retrieval (Dense + BM25)
+* Cross-encoder reranking
+* Advanced query transformation
+* Improved chunking strategies
+* Retrieval evaluation
+* Generation evaluation
+* RAG observability and tracing
+* Streaming LLM responses
+* Production deployment and scaling
