@@ -1,4 +1,4 @@
-# AI RAG Expert
+# AI RAG Expert MCP Integreation
 
 AI RAG Expert is an end-to-end Retrieval-Augmented Generation (RAG) system for interacting with uploaded documents through a conversational interface.
 
